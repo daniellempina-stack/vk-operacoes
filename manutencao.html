@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manutenção VK Calçados</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--navy:#1F2D3D;--gold:#C9A24B;--gold-light:#f0dfa0;--bg:#f5f6f8;--white:#fff;--border:#e2e5ea;--text:#1a2332;--muted:#6b7a8d;--green:#1a7a4a;--green-bg:#eaf5ef;--red:#b91c1c;--red-bg:#fef2f2;--amber:#92400e;--amber-bg:#fffbeb;--blue:#1d4ed8;--blue-bg:#eff6ff;--purple:#6d28d9;--purple-bg:#f5f3ff;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.header-logo span{font-size:11px;color:var(--gold-light);letter-spacing:.05em;text-transform:uppercase}
+.header-logo strong{font-size:16px;color:#fff}
+.header-nav{display:flex;gap:3px;flex-wrap:wrap}
+.nav-btn{background:none;border:none;color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s}
+.nav-btn.active,.nav-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.view{display:none;padding:1.5rem;max-width:1100px;margin:0 auto}
+.view.active{display:block}
+.page-title{font-size:20px;font-weight:600;color:var(--navy);margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:.875rem;padding-bottom:.625rem;border-bottom:1px solid var(--border)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.form-row{grid-template-columns:1fr}}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+select,input[type=text],input[type=number],input[type=password],textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;font-size:14px;color:var(--text);background:#fff;outline:none;transition:border-color .15s}
+select:focus,input:focus,textarea:focus{border-color:var(--navy)}
+textarea{resize:vertical;min-height:80px}
+.btn{padding:9px 20px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:#2a3d54}
+.btn-primary:disabled{background:#9aa5b4;cursor:not-allowed}
+.btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{background:#b8912f}
+.btn-green{background:var(--green-bg);color:var(--green);border:1px solid #86efac}.btn-green:hover{background:#d1fae5}
+.btn-red{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5}
+.btn-outline{background:#fff;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+.btn-purple{background:var(--purple-bg);color:var(--purple);border:1px solid #c4b5fd}
+.btn-sm{padding:5px 12px;font-size:12px}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+.badge-aberto{background:#dbeafe;color:#1e40af}
+.badge-em_analise{background:var(--purple-bg);color:var(--purple)}
+.badge-aguardando_orcamento{background:var(--amber-bg);color:var(--amber)}
+.badge-orcamento_enviado{background:#fef9c3;color:#854d0e}
+.badge-aprovado{background:var(--green-bg);color:var(--green)}
+.badge-reprovado{background:var(--red-bg);color:var(--red)}
+.badge-em_execucao{background:#e0f2fe;color:#0369a1}
+.badge-concluido{background:var(--green-bg);color:var(--green)}
+.badge-cancelado{background:#f1f5f9;color:var(--muted)}
+.urg-baixa{color:#6b7a8d;font-size:11px}
+.urg-normal{color:var(--blue);font-size:11px}
+.urg-alta{color:var(--amber);font-size:11px}
+.urg-critica{color:var(--red);font-size:11px;font-weight:700}
+.painel-table{width:100%;border-collapse:collapse;font-size:13px}
+.painel-table th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:7px 11px;border-bottom:2px solid var(--border);background:#f8f9fc}
+.painel-table td{padding:9px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+.painel-table tr:hover td{background:#f8f9fc}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:1.5rem;width:100%;max-width:740px;margin:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.125rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.modal-title{font-size:16px;font-weight:600;color:var(--navy)}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.modal-close:hover{color:var(--text)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.875rem 1rem}
+.stat-label{font-size:12px;color:var(--muted);font-weight:500;margin-bottom:3px}
+.stat-value{font-size:22px;font-weight:600;color:var(--navy)}
+.filtros{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.filtro-btn{padding:4px 13px;border-radius:20px;border:1px solid var(--border);background:#fff;font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s}
+.filtro-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;transform:translateY(100px);opacity:0;transition:all .3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+.loading{text-align:center;padding:2rem;color:var(--muted);font-size:14px}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.info-box{background:var(--blue-bg);border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--blue);margin-bottom:1rem}
+.warn-box{background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:1rem}
+.success-box{background:var(--green-bg);border:1px solid #86efac;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--green);margin-bottom:1rem}
+.section-divider{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1.25rem 0 .75rem;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.timeline{margin:0;padding:0;list-style:none}
+.timeline li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.timeline li:last-child{border-bottom:none}
+.timeline-dot{width:8px;height:8px;border-radius:50%;background:var(--navy);flex-shrink:0;margin-top:5px}
+.autorizacao-card{background:linear-gradient(135deg,#1F2D3D 0%,#2a3d54 100%);color:#fff;border-radius:12px;padding:1.5rem;margin-top:1rem}
+.autorizacao-card .titulo{font-size:12px;color:var(--gold-light);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.5rem}
+.autorizacao-card .valor{font-size:28px;font-weight:700;color:var(--gold);margin-bottom:.25rem}
+.autorizacao-card .codigo{font-size:13px;color:rgba(255,255,255,.7);font-family:monospace;letter-spacing:.1em}
+.radio-group{display:flex;gap:12px;flex-wrap:wrap}
+.radio-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;transition:all .15s}
+.radio-opt:hover{border-color:var(--navy)}
+.radio-opt.selected{border-color:var(--navy);background:#edf0f7;font-weight:600}
+.radio-opt input{accent-color:var(--navy)}
+.chamado-numero{font-size:12px;color:var(--muted);font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <div><span>Grupo VK Calçados</span><br><strong>Manutenção</strong></div>
+  </div>
+  <div class="header-nav">
+    <button class="nav-btn active" id="nbtn-chamado" onclick="showView('chamado',this)">Abrir Chamado</button>
+    <button class="nav-btn" id="nbtn-acompanhar" onclick="showView('acompanhar',this)">Meus Chamados</button>
+    <button class="nav-btn" id="nbtn-painel" style="display:none" onclick="showView('painel',this)">Painel</button>
+    <button class="nav-btn" id="nbtn-relatorio" style="display:none" onclick="showView('relatorio',this)">Relatório</button>
+    <button class="nav-btn" id="btn-login" style="opacity:.35;font-size:12px" onclick="abrirLogin()">🔒</button>
+    <button class="nav-btn" id="btn-sair" style="display:none;font-size:12px;color:#f87171" onclick="sairSessao()">Sair</button>
+  </div>
+</div>
+
+<!-- VIEW: ABRIR CHAMADO -->
+<div class="view active" id="view-chamado">
+  <div class="page-title">Abrir chamado de manutenção</div>
+  <div class="card">
+    <div class="card-title">Identificação</div>
+    <div class="form-row">
+      <div class="form-group"><label>Loja</label><select id="ch-loja"><option value="">Selecione...</option></select></div>
+      <div class="form-group"><label>Urgência</label>
+        <select id="ch-urgencia">
+          <option value="baixa">🟢 Baixa — pode aguardar</option>
+          <option value="normal" selected>🔵 Normal — até 7 dias</option>
+          <option value="alta">🟡 Alta — até 48h</option>
+          <option value="critica">🔴 Crítica — imediato</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Categoria</label>
+        <select id="ch-categoria" onchange="toggleOutro()">
+          <option value="">Selecione...</option>
+          <option value="Elétrica">⚡ Elétrica</option>
+          <option value="Hidráulica">💧 Hidráulica</option>
+          <option value="Ar condicionado">❄️ Ar condicionado</option>
+          <option value="Pintura">🎨 Pintura</option>
+          <option value="Serralheria">🔧 Serralheria</option>
+          <option value="Informática / Equipamentos">💻 Informática / Equipamentos</option>
+          <option value="Mobiliário">🪑 Mobiliário</option>
+          <option value="Outros">📋 Outros</option>
+        </select>
+      </div>
+      <div class="form-group" id="grupo-outro" style="display:none"><label>Especifique</label><input type="text" id="ch-outro" placeholder="Descreva o tipo de manutenção..."></div>
+    </div>
+    <div class="form-group"><label>Descrição do problema</label><textarea id="ch-descricao" placeholder="Descreva o problema com detalhes: o que aconteceu, onde está localizado, há quanto tempo..."></textarea></div>
+    <div class="form-group"><label>Seu nome / responsável na loja</label><input type="text" id="ch-aberto-por" placeholder="Nome de quem está abrindo o chamado"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Prestador de serviço (se já tiver)</div>
+    <div class="info-box">Se já tiver um prestador em mente, preencha abaixo. Caso contrário deixe em branco — o responsável de manutenção irá indicar.</div>
+    <div class="form-row">
+      <div class="form-group"><label>Nome do prestador</label><input type="text" id="ch-prestador-nome" placeholder="Nome completo ou empresa"></div>
+      <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="ch-prestador-doc" placeholder="000.000.000-00"></div>
+    </div>
+    <div class="form-group"><label>Chave PIX</label><input type="text" id="ch-prestador-pix" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></div>
+  </div>
+
+  <button class="btn btn-gold" onclick="abrirChamado()" id="btn-abrir">Abrir chamado</button>
+</div>
+
+<!-- VIEW: MEUS CHAMADOS (loja) -->
+<div class="view" id="view-acompanhar">
+  <div class="page-title">Meus chamados</div>
+  <div class="card" id="acomp-selecao">
+    <div class="card-title">Selecione sua loja</div>
+    <div class="form-group"><label>Loja</label><select id="acomp-loja"><option value="">Selecione...</option></select></div>
+    <button class="btn btn-primary" onclick="carregarMeusChamados()">Ver chamados</button>
+  </div>
+  <div id="acomp-resultado" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-size:14px;font-weight:600;color:var(--navy)" id="acomp-loja-titulo"></div>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('acomp-resultado').style.display='none';document.getElementById('acomp-selecao').style.display=''">Trocar loja</button>
+    </div>
+    <div id="acomp-lista"></div>
+  </div>
+</div>
+
+<!-- VIEW: PAINEL -->
+<div class="view" id="view-painel">
+  <div class="page-title">Painel de chamados <span id="painel-perfil" style="font-size:13px;font-weight:400;color:var(--gold-light);background:rgba(255,255,255,.1);padding:3px 10px;border-radius:20px"></span></div>
+  <div class="stats-grid" id="painel-stats"></div>
+  <div class="card" style="padding:1rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem">
+      <div class="filtros" id="filtros-status">
+        <button class="filtro-btn active" onclick="filtrarChamados('todos',this)">Todos</button>
+        <button class="filtro-btn" onclick="filtrarChamados('aberto',this)">Abertos</button>
+        <button class="filtro-btn" onclick="filtrarChamados('em_analise',this)">Em análise</button>
+        <button class="filtro-btn" onclick="filtrarChamados('orcamento_enviado',this)">Com orçamento</button>
+        <button class="filtro-btn" onclick="filtrarChamados('aprovado',this)">Aprovados</button>
+        <button class="filtro-btn" onclick="filtrarChamados('concluido',this)">Concluídos</button>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="carregarPainel()">↻ Atualizar</button>
+    </div>
+    <div id="painel-lista"><div class="loading">Carregando...</div></div>
+  </div>
+</div>
+
+<!-- VIEW: RELATÓRIO -->
+<div class="view" id="view-relatorio">
+  <div class="page-title">Relatório de manutenções</div>
+  <div class="card" style="padding:1rem;margin-bottom:1rem">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0;flex:1;min-width:120px"><label>Período</label>
+        <select id="rel-periodo">
+          <option value="mes">Este mês</option>
+          <option value="trimestre">Últimos 3 meses</option>
+          <option value="ano">Este ano</option>
+          <option value="tudo">Todos</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:120px"><label>Status</label>
+        <select id="rel-status">
+          <option value="">Todos</option>
+          <option value="concluido">Concluídos</option>
+          <option value="aprovado">Aprovados</option>
+          <option value="aberto">Abertos</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;flex:1;min-width:140px"><label>Categoria</label>
+        <select id="rel-cat">
+          <option value="">Todas</option>
+          <option>Elétrica</option><option>Hidráulica</option><option>Ar condicionado</option>
+          <option>Pintura</option><option>Serralheria</option><option>Informática / Equipamentos</option>
+          <option>Mobiliário</option><option>Outros</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="gerarRelatorio()">Gerar</button>
+    </div>
+  </div>
+  <div id="relatorio-resultado"></div>
+</div>
+
+<!-- MODAL: DETALHE CHAMADO -->
+<div class="modal-overlay" id="modal-chamado">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-chamado-titulo">Chamado</div>
+        <div class="chamado-numero" id="modal-chamado-num"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-chamado')">✕</button>
+    </div>
+    <div id="modal-chamado-corpo"></div>
+  </div>
+</div>
+
+<!-- MODAL: LOGIN -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal" style="max-width:360px;margin:auto">
+    <div class="modal-header"><div class="modal-title">Acesso restrito</div><button class="modal-close" onclick="fecharModal('modal-login')">✕</button></div>
+    <div class="form-group"><label>Perfil</label>
+      <select id="login-perfil">
+        <option value="financeiro">Financeiro (Dani)</option>
+        <option value="manutencao">Manutenção (Breno)</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Senha</label><input type="password" id="login-senha" placeholder="Digite a senha..." onkeydown="if(event.key==='Enter')tentarLogin()"></div>
+    <div id="login-erro" style="color:var(--red);font-size:12px;margin-bottom:10px;display:none">Senha incorreta.</div>
+    <button class="btn btn-primary" style="width:100%" onclick="tentarLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- MODAL: AUTORIZAÇÃO CAIXA -->
+<div class="modal-overlay" id="modal-autorizacao">
+  <div class="modal" style="max-width:480px;margin:auto">
+    <div class="modal-header"><div class="modal-title">Autorização de caixa</div><button class="modal-close" onclick="fecharModal('modal-autorizacao')">✕</button></div>
+    <div id="modal-autorizacao-corpo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL='https://ypmwijzvwizcxmsekbxe.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwbXdpanp2d2l6Y3htc2VrYnhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5MjMsImV4cCI6MjA5OTk2MDkyM30._0BhhnIVurVCKemob6BWZsUqzjJLjEJPcDLwMKVE0DU';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const SENHAS={financeiro:'Supri@123',manutencao:'Manut@123'};
+const LOJAS=[
+  {codigo:'2',nome:'F02 - BELA CALCADOS'},
+  {codigo:'3',nome:'F03 - ÚNICA CALÇADOS'},
+  {codigo:'5',nome:'F05 - CALCADOS D PAULA'},
+  {codigo:'6',nome:'F06 - BORA CALCADOS'},
+  {codigo:'7',nome:'F07 - BRILHO CALCADOS'},
+  {codigo:'13',nome:'F13 - L.A.G. CALCADOS'},
+  {codigo:'14',nome:'F14 - HT MENDES CALCADOS'},
+  {codigo:'20',nome:'F20 - PREMIUM CALÇADOS'},
+  {codigo:'21',nome:'F21 - JL CALCADOS'},
+  {codigo:'23',nome:'F23 - SONHO CALCADOS'},
+  {codigo:'26',nome:'F26 - BOSCHI CALCADOS'},
+  {codigo:'34',nome:'F34 - CAIALA CALCADOS'},
+  {codigo:'35',nome:'35 - CALCE BEM CALÇADOS'},
+  {codigo:'38',nome:'38 - PRIMEIRO PASSO CALCADOS'},
+  {codigo:'39',nome:'F39 - WL ANDRADE CALCADOS'},
+  {codigo:'42',nome:'F42 - ALFENAS CALCADOS'},
+  {codigo:'46',nome:'46 - CALCADOS TRES PONTAS'},
+  {codigo:'51',nome:'F51 - ÚNICA CALÇADOS'},
+  {codigo:'54',nome:'F54 - FLEX LIFE CALCADOS'},
+  {codigo:'98',nome:'98 - PRINCIPAL SERVICOS ADM'},
+  {codigo:'102',nome:'102 - PASSOS CALCADOS'},
+  {codigo:'111',nome:'111 - ALFENAS CALCADOS'},
+  {codigo:'118',nome:'118 - CALCE BEM CALÇADOS'},
+  {codigo:'119',nome:'119 - MISTER GOMES CALCADOS'},
+  {codigo:'135',nome:'135 - BOM ESTILO CALCADOS'},
+  {codigo:'204',nome:'204 - VK HOLDING DE PART'},
+  {codigo:'205',nome:'205 - VX HOLDING PATRIMONIAL'},
+  {codigo:'206',nome:'206 - UP ALUGUEIS'},
+  {codigo:'218',nome:'218 - PE CERTO CALCADOS'},
+  {codigo:'450',nome:'450 - PONTO CENTRAL'},
+  {codigo:'451',nome:'451 - VALE DO ACO GESTAO'},
+  {codigo:'452',nome:'452 - CARIACICA GESTAO'},
+  {codigo:'453',nome:'453 - VALADARES GESTAO'},
+  {codigo:'454',nome:'454 - CONTAGEM SOLUCOES'},
+  {codigo:'455',nome:'455 - CANNES SOLUCOES'},
+  {codigo:'456',nome:'456 - LONDON SOLUCOES'},
+  {codigo:'701',nome:'701 - ALIANCA'},
+  {codigo:'703',nome:'703 - ALIANCA'},
+  {codigo:'704',nome:'704 - ALIANCA'},
+  {codigo:'708',nome:'708 - VK CALCADOS LTDA'},
+  {codigo:'710',nome:'710 - ALIANCA'},
+  {codigo:'715',nome:'715 - ALIANCA'},
+  {codigo:'716',nome:'716 - ALIANCA'},
+  {codigo:'717',nome:'717 - ALIANCA'},
+  {codigo:'727',nome:'727 - ALIANCA'},
+  {codigo:'728',nome:'728 - ALIANCA'},
+  {codigo:'729',nome:'729 - ALIANCA'},
+  {codigo:'731',nome:'731 - ALIANCA'},
+  {codigo:'732',nome:'732 - ALIANCA'},
+  {codigo:'756',nome:'756 - ALIANCA'},
+  {codigo:'762',nome:'762 - ALIANCA'}
+];
+
+const STATUS_LABEL={aberto:'Aberto',em_analise:'Em análise',aguardando_orcamento:'Ag. orçamento',orcamento_enviado:'Orçamento enviado',aprovado:'Aprovado',reprovado:'Reprovado',em_execucao:'Em execução',concluido:'Concluído',cancelado:'Cancelado'};
+const URGENCIA_LABEL={baixa:'🟢 Baixa',normal:'🔵 Normal',alta:'🟡 Alta',critica:'🔴 Crítica'};
+
+let sessao=null; // null | 'financeiro' | 'manutencao'
+let chamadosCache=[];
+let filtroAtual='todos';
+
+// ============ INIT ============
+window.addEventListener('load',()=>{
+  LOJAS.forEach(l=>{
+    const o=document.createElement('option');o.value=l.codigo;o.textContent=l.nome;
+    document.getElementById('ch-loja').appendChild(o);
+    const o2=document.createElement('option');o2.value=l.codigo;o2.textContent=l.nome;
+    document.getElementById('acomp-loja').appendChild(o2);
+  });
+  const s=sessionStorage.getItem('man_sessao');
+  if(s) ativarSessao(s);
+});
+
+function toggleOutro(){
+  document.getElementById('grupo-outro').style.display=document.getElementById('ch-categoria').value==='Outros'?'':'none';
+}
+
+// ============ ABRIR CHAMADO ============
+async function abrirChamado(){
+  const lojaCod=document.getElementById('ch-loja').value;
+  const categoria=document.getElementById('ch-categoria').value;
+  const descricao=document.getElementById('ch-descricao').value.trim();
+  const abertoPor=document.getElementById('ch-aberto-por').value.trim();
+  if(!lojaCod){showToast('Selecione a loja','error');return;}
+  if(!categoria){showToast('Selecione a categoria','error');return;}
+  if(!descricao){showToast('Descreva o problema','error');return;}
+  if(!abertoPor){showToast('Informe o responsável na loja','error');return;}
+
+  const btn=document.getElementById('btn-abrir');btn.disabled=true;btn.textContent='Enviando...';
+  const loja=LOJAS.find(l=>l.codigo===lojaCod);
+  const catOutro=document.getElementById('ch-outro').value.trim();
+
+  const{data,error}=await sb.from('man_chamados').insert({
+    loja_codigo:loja.codigo,loja_nome:loja.nome,
+    categoria,categoria_outro:catOutro||null,
+    descricao,urgencia:document.getElementById('ch-urgencia').value,
+    aberto_por:abertoPor,status:'aberto',
+    prestador_nome:document.getElementById('ch-prestador-nome').value.trim()||null,
+    prestador_cpf_cnpj:document.getElementById('ch-prestador-doc').value.trim()||null,
+    prestador_pix:document.getElementById('ch-prestador-pix').value.trim()||null,
+  }).select().single();
+
+  if(error){showToast('Erro ao abrir chamado','error');btn.disabled=false;btn.textContent='Abrir chamado';return;}
+
+  showToast(`Chamado #${data.numero} aberto com sucesso!`,'success');
+  // Reset
+  ['ch-loja','ch-categoria','ch-urgencia'].forEach(id=>document.getElementById(id).value=id==='ch-urgencia'?'normal':'');
+  ['ch-descricao','ch-aberto-por','ch-prestador-nome','ch-prestador-doc','ch-prestador-pix','ch-outro'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('grupo-outro').style.display='none';
+  btn.disabled=false;btn.textContent='Abrir chamado';
+}
+
+// ============ PAINEL ============
+async function carregarPainel(){
+  document.getElementById('painel-lista').innerHTML='<div class="loading">Carregando...</div>';
+  const{data,error}=await sb.from('man_chamados').select('*').order('data_abertura',{ascending:false});
+  if(error){showToast('Erro ao carregar','error');return;}
+  chamadosCache=data||[];
+  renderizarStats();
+  renderizarLista();
+}
+
+function renderizarStats(){
+  const total=chamadosCache.length;
+  const abertos=chamadosCache.filter(c=>c.status==='aberto').length;
+  const comOrc=chamadosCache.filter(c=>c.status==='orcamento_enviado').length;
+  const aprovados=chamadosCache.filter(c=>c.status==='aprovado'||c.status==='em_execucao').length;
+  const gastoTotal=chamadosCache.filter(c=>c.valor_final).reduce((s,c)=>s+Number(c.valor_final),0);
+  document.getElementById('painel-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total chamados</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Abertos</div><div class="stat-value" style="color:var(--blue)">${abertos}</div></div>
+    <div class="stat-card"><div class="stat-label">Com orçamento</div><div class="stat-value" style="color:var(--amber)">${comOrc}</div></div>
+    <div class="stat-card"><div class="stat-label">Em execução</div><div class="stat-value" style="color:var(--purple)">${aprovados}</div></div>
+    <div class="stat-card"><div class="stat-label">Gasto total</div><div class="stat-value" style="color:var(--gold);font-size:16px">R$ ${gastoTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>`;
+}
+
+function filtrarChamados(status,btn){
+  filtroAtual=status;
+  document.querySelectorAll('.filtro-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderizarLista();
+}
+
+function renderizarLista(){
+  const lista=filtroAtual==='todos'?chamadosCache:chamadosCache.filter(c=>c.status===filtroAtual);
+  if(!lista.length){document.getElementById('painel-lista').innerHTML='<div class="empty-state"><p>Nenhum chamado encontrado</p></div>';return;}
+  document.getElementById('painel-lista').innerHTML=`
+    <table class="painel-table">
+      <thead><tr><th>#</th><th>Loja</th><th>Categoria</th><th>Urgência</th><th>Status</th><th>Valor</th><th>Data</th><th></th></tr></thead>
+      <tbody>${lista.map(c=>`<tr>
+        <td class="chamado-numero">#${c.numero}</td>
+        <td><strong>${c.loja_nome}</strong></td>
+        <td>${c.categoria}${c.categoria_outro?' — '+c.categoria_outro:''}</td>
+        <td class="urg-${c.urgencia}">${URGENCIA_LABEL[c.urgencia]}</td>
+        <td><span class="badge badge-${c.status}">${STATUS_LABEL[c.status]}</span></td>
+        <td style="font-size:13px">${c.valor_final?'R$ '+Number(c.valor_final).toLocaleString('pt-BR',{minimumFractionDigits:2}):c.orcamento_valor?'<span style="color:var(--muted)">Orç: R$ '+Number(c.orcamento_valor).toLocaleString('pt-BR',{minimumFractionDigits:2})+'</span>':'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${new Date(c.data_abertura).toLocaleDateString('pt-BR')}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="abrirDetalhe('${c.id}')">Ver</button></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+// ============ DETALHE CHAMADO ============
+async function abrirDetalhe(id){
+  const c=chamadosCache.find(x=>x.id===id);if(!c)return;
+  document.getElementById('modal-chamado-titulo').textContent=`${c.categoria}${c.categoria_outro?' — '+c.categoria_outro:''}`;
+  document.getElementById('modal-chamado-num').textContent=`Chamado #${c.numero} · ${c.loja_nome} · Aberto por ${c.aberto_por}`;
+
+  let acoes='';
+
+  // AÇÕES MANUTENÇÃO (Breno)
+  if(sessao==='manutencao'&&(c.status==='aberto'||c.status==='em_analise'||c.status==='aguardando_orcamento')){
+    acoes+=`
+      <div class="section-divider">Análise e orçamento</div>
+      <div class="form-row">
+        <div class="form-group"><label>Prestador</label><input type="text" id="det-prest-nome" value="${c.prestador_nome||''}" placeholder="Nome do prestador"></div>
+        <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="det-prest-doc" value="${c.prestador_cpf_cnpj||''}" placeholder="Documento"></div>
+      </div>
+      <div class="form-group"><label>Chave PIX</label><input type="text" id="det-prest-pix" value="${c.prestador_pix||''}" placeholder="Chave PIX do prestador"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor do orçamento (R$)</label><input type="number" id="det-orc-valor" value="${c.orcamento_valor||''}" placeholder="0,00" step="0.01"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="det-status-manut">
+            <option value="em_analise" ${c.status==='em_analise'?'selected':''}>Em análise</option>
+            <option value="aguardando_orcamento" ${c.status==='aguardando_orcamento'?'selected':''}>Aguardando orçamento</option>
+            <option value="orcamento_enviado" ${c.status==='orcamento_enviado'?'selected':''}>Orçamento enviado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Observação</label><textarea id="det-obs-manut" placeholder="Detalhes da análise...">${c.observacao_manutencao||''}</textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="salvarAnalise('${id}')">Salvar análise</button>`;
+  }
+
+  // AÇÕES FINANCEIRO (Dani)
+  if(sessao==='financeiro'&&c.status==='orcamento_enviado'){
+    acoes+=`
+      <div class="section-divider">Aprovação financeira</div>
+      ${c.orcamento_valor?`<div class="warn-box">💰 Orçamento solicitado: <strong>R$ ${Number(c.orcamento_valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>`:''}
+      <div class="form-group"><label>Forma de pagamento</label>
+        <div class="radio-group">
+          <label class="radio-opt" onclick="selecionarPagamento(this,'pix')"><input type="radio" name="tipo-pag" value="pix"> PIX / Transferência</label>
+          <label class="radio-opt" onclick="selecionarPagamento(this,'caixa_loja')"><input type="radio" name="tipo-pag" value="caixa_loja"> Retirada do caixa da loja</label>
+        </div>
+      </div>
+      <div class="form-group"><label>Observação financeiro</label><textarea id="det-obs-fin" placeholder="Instruções ou observações...">${c.observacao_financeiro||''}</textarea></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-green btn-sm" onclick="aprovarPagamento('${id}',true)">✓ Aprovar e autorizar</button>
+        <button class="btn btn-red btn-sm" onclick="aprovarPagamento('${id}',false)">✕ Reprovar</button>
+      </div>`;
+  }
+
+  // AÇÕES FINANCEIRO — registrar NF após execução
+  if(sessao==='financeiro'&&(c.status==='aprovado'||c.status==='em_execucao')){
+    acoes+=`
+      <div class="section-divider">Registrar conclusão</div>
+      <div class="form-row">
+        <div class="form-group"><label>Nota Fiscal</label><input type="text" id="det-nf" value="${c.nota_fiscal||''}" placeholder="Número da NF"></div>
+        <div class="form-group"><label>Valor final (R$)</label><input type="number" id="det-valor-final" value="${c.valor_final||''}" placeholder="0,00" step="0.01"></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="concluirChamado('${id}')">Marcar como concluído</button>`;
+  }
+
+  // Autorização de caixa
+  let autorizacaoHTML='';
+  if(c.tipo_pagamento==='caixa_loja'&&c.pagamento_aprovado&&c.autorizacao_caixa_codigo){
+    autorizacaoHTML=`
+      <div class="section-divider">Autorização de caixa</div>
+      <div class="autorizacao-card">
+        <div class="titulo">Autorização de retirada do caixa</div>
+        <div class="valor">R$ ${Number(c.orcamento_valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        <div style="margin-bottom:.5rem;font-size:13px">${c.loja_nome}</div>
+        <div class="codigo">Código: ${c.autorizacao_caixa_codigo}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:.5rem">Autorizado por Dani · ${c.pagamento_aprovado_em?new Date(c.pagamento_aprovado_em).toLocaleDateString('pt-BR'):''}</div>
+        <button class="btn btn-sm" style="margin-top:1rem;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)" onclick="imprimirAutorizacao('${id}')">🖨️ Imprimir autorização</button>
+      </div>`;
+  }
+
+  document.getElementById('modal-chamado-corpo').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;font-size:13px">
+      <div><span style="color:var(--muted)">Urgência:</span> ${URGENCIA_LABEL[c.urgencia]}</div>
+      <div><span style="color:var(--muted)">Status:</span> <span class="badge badge-${c.status}">${STATUS_LABEL[c.status]}</span></div>
+      <div><span style="color:var(--muted)">Data:</span> ${new Date(c.data_abertura).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      ${c.pagamento_aprovado?`<div><span style="color:var(--muted)">Pagamento:</span> ${c.tipo_pagamento==='caixa_loja'?'💵 Caixa da loja':'🔵 PIX/Transferência'}</div>`:''}
+    </div>
+    <div class="form-group" style="background:#f8f9fc;padding:12px;border-radius:8px;margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Descrição</div>
+      <div style="font-size:14px;line-height:1.6">${c.descricao}</div>
+    </div>
+    ${c.prestador_nome?`
+    <div style="background:#f8f9fc;padding:12px;border-radius:8px;margin-bottom:1rem;font-size:13px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Prestador</div>
+      <div><strong>${c.prestador_nome}</strong>${c.prestador_cpf_cnpj?' · '+c.prestador_cpf_cnpj:''}</div>
+      ${c.prestador_pix?`<div style="color:var(--muted)">PIX: ${c.prestador_pix}</div>`:''}
+    </div>`:''}
+    ${c.orcamento_valor&&c.status!=='aberto'?`
+    <div style="background:var(--amber-bg);padding:12px;border-radius:8px;margin-bottom:1rem;font-size:13px">
+      <div style="font-size:11px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Orçamento</div>
+      <div style="font-size:18px;font-weight:700;color:var(--amber)">R$ ${Number(c.orcamento_valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      ${c.observacao_manutencao?`<div style="margin-top:6px;color:var(--amber)">${c.observacao_manutencao}</div>`:''}
+    </div>`:''}
+    ${c.nota_fiscal?`
+    <div style="background:var(--green-bg);padding:12px;border-radius:8px;margin-bottom:1rem;font-size:13px">
+      <div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Nota Fiscal</div>
+      <div>NF: <strong>${c.nota_fiscal}</strong> · Valor final: <strong>R$ ${Number(c.valor_final||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></div>
+    </div>`:''}
+    ${autorizacaoHTML}
+    ${acoes}`;
+
+  document.getElementById('modal-chamado').classList.add('open');
+}
+
+function selecionarPagamento(el,val){
+  document.querySelectorAll('.radio-opt').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input').checked=true;
+}
+
+async function salvarAnalise(id){
+  const updates={
+    status:document.getElementById('det-status-manut').value,
+    prestador_nome:document.getElementById('det-prest-nome').value.trim()||null,
+    prestador_cpf_cnpj:document.getElementById('det-prest-doc').value.trim()||null,
+    prestador_pix:document.getElementById('det-prest-pix').value.trim()||null,
+    orcamento_valor:parseFloat(document.getElementById('det-orc-valor').value)||null,
+    observacao_manutencao:document.getElementById('det-obs-manut').value.trim()||null,
+    orcamento_por:'Breno Pardini',orcamento_data:new Date().toISOString(),
+    data_atualizacao:new Date().toISOString()
+  };
+  const{error}=await sb.from('man_chamados').update(updates).eq('id',id);
+  if(error){showToast('Erro ao salvar','error');return;}
+  showToast('Análise salva!','success');fecharModal('modal-chamado');carregarPainel();
+}
+
+async function aprovarPagamento(id,aprovar){
+  const tipoPag=document.querySelector('input[name="tipo-pag"]:checked')?.value;
+  if(aprovar&&!tipoPag){showToast('Selecione a forma de pagamento','error');return;}
+  const codigo=aprovar&&tipoPag==='caixa_loja'?gerarCodigoAutorizacao():null;
+  const updates={
+    status:aprovar?'aprovado':'reprovado',
+    pagamento_aprovado:aprovar,
+    pagamento_aprovado_por:'Dani',
+    pagamento_aprovado_em:new Date().toISOString(),
+    tipo_pagamento:tipoPag||null,
+    autorizacao_caixa_codigo:codigo,
+    observacao_financeiro:document.getElementById('det-obs-fin').value.trim()||null,
+    data_atualizacao:new Date().toISOString()
+  };
+  const{error}=await sb.from('man_chamados').update(updates).eq('id',id);
+  if(error){showToast('Erro ao salvar','error');return;}
+  if(aprovar&&tipoPag==='caixa_loja'){
+    const c=chamadosCache.find(x=>x.id===id);
+    mostrarAutorizacaoCaixa({...c,...updates});
+  } else {
+    showToast(aprovar?'Pagamento aprovado!':'Chamado reprovado','success');
+    fecharModal('modal-chamado');
+  }
+  carregarPainel();
+}
+
+function gerarCodigoAutorizacao(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='MAN-';
+  for(let i=0;i<8;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function mostrarAutorizacaoCaixa(c){
+  fecharModal('modal-chamado');
+  document.getElementById('modal-autorizacao-corpo').innerHTML=`
+    <div class="success-box">✅ Pagamento aprovado! A loja pode efetuar a retirada do caixa.</div>
+    <div class="autorizacao-card">
+      <div class="titulo">Autorização de retirada do caixa</div>
+      <div class="valor">R$ ${Number(c.orcamento_valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div style="margin-bottom:.25rem;font-size:14px;font-weight:500">${c.loja_nome}</div>
+      <div style="margin-bottom:.5rem;font-size:13px;color:rgba(255,255,255,.7)">${c.categoria} — Chamado #${c.numero}</div>
+      <div class="codigo">Código: ${c.autorizacao_caixa_codigo}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:.5rem">Autorizado por Dani · ${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:1rem">
+      <button class="btn btn-primary" onclick="imprimirAutorizacaoModal('${c.id}','${c.numero}','${c.loja_nome}','${c.categoria}','${c.orcamento_valor||0}','${c.autorizacao_caixa_codigo}')">🖨️ Imprimir</button>
+      <button class="btn btn-outline" onclick="fecharModal('modal-autorizacao')">Fechar</button>
+    </div>`;
+  document.getElementById('modal-autorizacao').classList.add('open');
+}
+
+function imprimirAutorizacaoModal(id,num,loja,cat,valor,codigo){
+  gerarPDFAutorizacao(num,loja,cat,parseFloat(valor),codigo);
+}
+
+async function imprimirAutorizacao(id){
+  const c=chamadosCache.find(x=>x.id===id);if(!c)return;
+  gerarPDFAutorizacao(c.numero,c.loja_nome,c.categoria,c.orcamento_valor,c.autorizacao_caixa_codigo);
+}
+
+function gerarPDFAutorizacao(num,loja,cat,valor,codigo){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({format:'a5'});
+  doc.setFillColor(31,45,61);doc.rect(0,0,148,30,'F');
+  doc.setTextColor(201,162,75);doc.setFontSize(14);doc.setFont(undefined,'bold');
+  doc.text('AUTORIZAÇÃO DE CAIXA',74,12,{align:'center'});
+  doc.setTextColor(240,223,160);doc.setFontSize(10);doc.setFont(undefined,'normal');
+  doc.text('Grupo VK Calçados — Manutenção',74,22,{align:'center'});
+  doc.setTextColor(31,45,61);doc.setFontSize(11);
+  doc.text(`Loja: ${loja}`,14,42);
+  doc.text(`Chamado: #${num}  |  Categoria: ${cat}`,14,52);
+  doc.setFontSize(20);doc.setFont(undefined,'bold');doc.setTextColor(201,162,75);
+  doc.text(`R$ ${Number(valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}`,74,72,{align:'center'});
+  doc.setFontSize(11);doc.setFont(undefined,'normal');doc.setTextColor(31,45,61);
+  doc.text('Valor autorizado para retirada do caixa da loja.',74,82,{align:'center'});
+  doc.setFillColor(248,249,252);doc.rect(14,92,120,18,'F');
+  doc.setFontSize(13);doc.setFont(undefined,'bold');doc.setTextColor(31,45,61);
+  doc.text(`Código: ${codigo}`,74,103,{align:'center'});
+  doc.setFontSize(9);doc.setFont(undefined,'normal');doc.setTextColor(100);
+  doc.text(`Autorizado por: Danielle (Financeiro) · ${new Date().toLocaleDateString('pt-BR')}`,74,118,{align:'center'});
+  doc.text('Este documento autoriza a retirada do valor acima do caixa da loja para pagamento de serviço de manutenção.',74,126,{align:'center',maxWidth:120});
+  doc.setDrawColor(200);doc.setLineDash([2,2]);doc.line(14,135,134,135);
+  doc.setFontSize(8);doc.setTextColor(150);
+  doc.text('Assinatura do responsável pela retirada: ___________________________',14,144);
+  doc.save(`Autorizacao_Caixa_${num}.pdf`);
+}
+
+async function concluirChamado(id){
+  const nf=document.getElementById('det-nf').value.trim();
+  const valor=parseFloat(document.getElementById('det-valor-final').value)||null;
+  const{error}=await sb.from('man_chamados').update({status:'concluido',nota_fiscal:nf||null,valor_final:valor,data_atualizacao:new Date().toISOString()}).eq('id',id);
+  if(error){showToast('Erro ao concluir','error');return;}
+  showToast('Chamado concluído!','success');fecharModal('modal-chamado');carregarPainel();
+}
+
+// ============ RELATÓRIO ============
+async function gerarRelatorio(){
+  document.getElementById('relatorio-resultado').innerHTML='<div class="loading">Gerando...</div>';
+  const periodo=document.getElementById('rel-periodo').value;
+  const status=document.getElementById('rel-status').value;
+  const cat=document.getElementById('rel-cat').value;
+  const agora=new Date();
+  let ini=null;
+  if(periodo==='mes') ini=new Date(agora.getFullYear(),agora.getMonth(),1);
+  else if(periodo==='trimestre') ini=new Date(agora.getFullYear(),agora.getMonth()-3,1);
+  else if(periodo==='ano') ini=new Date(agora.getFullYear(),0,1);
+
+  let query=sb.from('man_chamados').select('*').order('data_abertura',{ascending:false});
+  if(ini) query=query.gte('data_abertura',ini.toISOString());
+  if(status) query=query.eq('status',status);
+  if(cat) query=query.eq('categoria',cat);
+  const{data,error}=await query;
+  if(error){showToast('Erro','error');return;}
+
+  const totalGasto=data.filter(c=>c.valor_final).reduce((s,c)=>s+Number(c.valor_final),0);
+  const porCat={};data.forEach(c=>{if(!porCat[c.categoria])porCat[c.categoria]=0;porCat[c.categoria]++;});
+  const porLoja={};data.forEach(c=>{if(!porLoja[c.loja_nome])porLoja[c.loja_nome]={qtd:0,gasto:0};porLoja[c.loja_nome].qtd++;if(c.valor_final)porLoja[c.loja_nome].gasto+=Number(c.valor_final);});
+
+  document.getElementById('relatorio-resultado').innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+      <button class="btn btn-outline btn-sm" onclick="exportarRelPDF()">⬇ PDF</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Chamados</div><div class="stat-value">${data.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Gasto total</div><div class="stat-value" style="color:var(--gold);font-size:16px">R$ ${totalGasto.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="card" style="padding:1rem">
+        <div class="card-title">Por categoria</div>
+        <table class="painel-table">
+          <thead><tr><th>Categoria</th><th style="text-align:center">Chamados</th></tr></thead>
+          <tbody>${Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:center">${v}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <div class="card" style="padding:1rem">
+        <div class="card-title">Por loja</div>
+        <table class="painel-table">
+          <thead><tr><th>Loja</th><th style="text-align:center">Qtd</th><th style="text-align:right">Gasto</th></tr></thead>
+          <tbody>${Object.entries(porLoja).sort((a,b)=>b[1].gasto-a[1].gasto).map(([k,v])=>`<tr><td>${k}</td><td style="text-align:center">${v.qtd}</td><td style="text-align:right">${v.gasto?'R$ '+v.gasto.toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card" style="padding:1rem;margin-top:1rem" id="rel-tabela-completa">
+      <div class="card-title">Todos os chamados</div>
+      <table class="painel-table">
+        <thead><tr><th>#</th><th>Loja</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th><th>Data</th></tr></thead>
+        <tbody>${data.map(c=>`<tr>
+          <td class="chamado-numero">#${c.numero}</td>
+          <td>${c.loja_nome}</td>
+          <td>${c.categoria}</td>
+          <td><span class="badge badge-${c.status}">${STATUS_LABEL[c.status]}</span></td>
+          <td style="text-align:right">${c.valor_final?'R$ '+Number(c.valor_final).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
+          <td style="font-size:12px">${new Date(c.data_abertura).toLocaleDateString('pt-BR')}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  window._relDados=data;
+}
+
+function exportarRelPDF(){
+  if(!window._relDados?.length){showToast('Gere o relatório primeiro','error');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  doc.setFontSize(16);doc.setTextColor(31,45,61);doc.setFont(undefined,'bold');
+  doc.text('Grupo VK Calçados — Relatório de Manutenção',14,18);
+  doc.setFontSize(10);doc.setFont(undefined,'normal');doc.setTextColor(100);
+  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,14,26);
+  const total=window._relDados.filter(c=>c.valor_final).reduce((s,c)=>s+Number(c.valor_final),0);
+  doc.setTextColor(31,45,61);doc.setFontSize(11);
+  doc.text(`Total de chamados: ${window._relDados.length}   |   Gasto total: R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}`,14,34);
+  doc.autoTable({startY:40,head:[['#','Loja','Categoria','Status','Valor','Data']],
+    body:window._relDados.map(c=>[`#${c.numero}`,c.loja_nome,c.categoria,STATUS_LABEL[c.status],c.valor_final?'R$ '+Number(c.valor_final).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—',new Date(c.data_abertura).toLocaleDateString('pt-BR')]),
+    styles:{fontSize:9},headStyles:{fillColor:[31,45,61]},alternateRowStyles:{fillColor:[248,249,252]}});
+  doc.save('Manutencao_VK_Relatorio.pdf');
+  showToast('PDF exportado!','success');
+}
+
+// ============ MEUS CHAMADOS (LOJA) ============
+async function carregarMeusChamados(){
+  const cod=document.getElementById('acomp-loja').value;
+  if(!cod){showToast('Selecione a loja','error');return;}
+  const loja=LOJAS.find(l=>l.codigo===cod);
+  const{data,error}=await sb.from('man_chamados').select('*').eq('loja_codigo',cod).order('data_abertura',{ascending:false});
+  if(error){showToast('Erro ao carregar','error');return;}
+
+  document.getElementById('acomp-selecao').style.display='none';
+  document.getElementById('acomp-resultado').style.display='';
+  document.getElementById('acomp-loja-titulo').textContent=loja.nome;
+
+  if(!data.length){
+    document.getElementById('acomp-lista').innerHTML='<div class="empty-state"><p>Nenhum chamado encontrado para esta loja.</p></div>';
+    return;
+  }
+
+  document.getElementById('acomp-lista').innerHTML=data.map(c=>{
+    // Montar card por chamado
+    const urgClass=`urg-${c.urgencia}`;
+    let statusExtra='';
+
+    // Orçamento pendente de aprovação
+    if(c.status==='orcamento_enviado'){
+      statusExtra=`<div class="warn-box" style="margin-top:.75rem">
+        💰 Orçamento enviado pelo responsável de manutenção: <strong>R$ ${Number(c.orcamento_valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong>
+        <div style="margin-top:4px;font-size:12px">Aguardando aprovação financeira.</div>
+      </div>`;
+    }
+
+    // Aprovado com PIX
+    if(c.pagamento_aprovado&&c.tipo_pagamento!=='caixa_loja'){
+      statusExtra=`<div class="success-box" style="margin-top:.75rem">
+        ✅ Pagamento aprovado via PIX/Transferência.
+        ${c.observacao_financeiro?`<div style="margin-top:4px;font-size:12px">${c.observacao_financeiro}</div>`:''}
+        <div style="margin-top:4px;font-size:12px;color:var(--muted)">Valor: R$ ${Number(c.orcamento_valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>`;
+    }
+
+    // Autorização de caixa
+    if(c.pagamento_aprovado&&c.tipo_pagamento==='caixa_loja'&&c.autorizacao_caixa_codigo){
+      statusExtra=`<div class="autorizacao-card" style="margin-top:.75rem">
+        <div class="titulo">Autorização de retirada do caixa</div>
+        <div class="valor">R$ ${Number(c.orcamento_valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+        <div class="codigo">Código: ${c.autorizacao_caixa_codigo}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:.5rem">Autorizado por Dani · ${c.pagamento_aprovado_em?new Date(c.pagamento_aprovado_em).toLocaleDateString('pt-BR'):''}</div>
+        <button class="btn btn-sm" style="margin-top:.75rem;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)"
+          onclick="gerarPDFAutorizacao(${c.numero},'${c.loja_nome}','${c.categoria}',${c.orcamento_valor||0},'${c.autorizacao_caixa_codigo}')">🖨️ Imprimir autorização</button>
+      </div>`;
+    }
+
+    // Reprovado
+    if(c.status==='reprovado'){
+      statusExtra=`<div style="background:var(--red-bg);border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-top:.75rem;font-size:13px;color:var(--red)">
+        ✕ Chamado reprovado pelo financeiro.
+        ${c.observacao_financeiro?`<div style="margin-top:4px">${c.observacao_financeiro}</div>`:''}
+      </div>`;
+    }
+
+    // Concluído
+    if(c.status==='concluido'){
+      statusExtra=`<div class="success-box" style="margin-top:.75rem">
+        ✅ Serviço concluído.
+        ${c.nota_fiscal?`<div style="margin-top:4px;font-size:12px">NF: ${c.nota_fiscal} · Valor final: R$ ${Number(c.valor_final||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>`:''}
+      </div>`;
+    }
+
+    return `<div class="card" style="margin-bottom:.875rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:.5rem">
+        <div>
+          <div style="font-weight:600;font-size:14px;color:var(--navy)">${c.categoria}${c.categoria_outro?' — '+c.categoria_outro:''}</div>
+          <div class="chamado-numero" style="margin-top:2px">#${c.numero} · ${new Date(c.data_abertura).toLocaleDateString('pt-BR')} · <span class="${urgClass}">${URGENCIA_LABEL[c.urgencia]}</span></div>
+        </div>
+        <span class="badge badge-${c.status}" style="white-space:nowrap">${STATUS_LABEL[c.status]}</span>
+      </div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5">${c.descricao}</div>
+      ${c.observacao_manutencao?`<div style="font-size:12px;color:var(--muted);margin-top:6px;padding:8px;background:#f8f9fc;border-radius:6px">💬 Breno: ${c.observacao_manutencao}</div>`:''}
+      ${statusExtra}
+    </div>`;
+  }).join('');
+}
+
+// ============ NAVEGAÇÃO ============
+function showView(view,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(view==='painel')carregarPainel();
+}
+
+// ============ LOGIN ============
+function abrirLogin(){
+  document.getElementById('login-senha').value='';document.getElementById('login-erro').style.display='none';
+  document.getElementById('modal-login').classList.add('open');
+  setTimeout(()=>document.getElementById('login-senha').focus(),100);
+}
+
+function tentarLogin(){
+  const perfil=document.getElementById('login-perfil').value;
+  const senha=document.getElementById('login-senha').value;
+  if(senha===SENHAS[perfil]){
+    sessionStorage.setItem('man_sessao',perfil);
+    fecharModal('modal-login');ativarSessao(perfil);
+    showToast(`Bem-vindo${perfil==='financeiro'?'a, Dani':'o, Breno'}!`,'success');
+  } else {
+    document.getElementById('login-erro').style.display='block';
+    document.getElementById('login-senha').value='';
+    document.getElementById('login-senha').focus();
+  }
+}
+
+function ativarSessao(perfil){
+  sessao=perfil;
+  document.getElementById('nbtn-painel').style.display='';
+  document.getElementById('nbtn-relatorio').style.display='';
+  document.getElementById('btn-login').style.display='none';
+  document.getElementById('btn-sair').style.display='';
+  const labelPerfil=perfil==='financeiro'?'Dani · Financeiro':'Breno · Manutenção';
+  document.getElementById('painel-perfil').textContent=labelPerfil;
+}
+
+function sairSessao(){
+  sessionStorage.removeItem('man_sessao');sessao=null;
+  document.getElementById('nbtn-painel').style.display='none';
+  document.getElementById('nbtn-relatorio').style.display='none';
+  document.getElementById('btn-login').style.display='';
+  document.getElementById('btn-sair').style.display='none';
+  showToast('Sessão encerrada','');
+}
+
+// ============ MODAIS ============
+function fecharModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)fecharModal(this.id);}));
+
+// ============ TOAST ============
+function showToast(msg,tipo=''){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${tipo}`;
+  setTimeout(()=>t.className='toast',3000);
+}
+</script>
+</body></html>
