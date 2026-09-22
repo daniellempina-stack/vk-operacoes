@@ -1,0 +1,16 @@
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar banco
+        run: |
+          curl -f -s "https://ypmwijzvwizcxmsekbxe.supabase.co/rest/v1/sup_catalogo?select=*&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}"
